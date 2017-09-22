@@ -11,9 +11,13 @@ from urllib.error import HTTPError
 import json
 import os
 
-from flask import Flask
+from flask import Flask, session
 from flask import request
 from flask import make_response
+
+from user import Customer
+from user import Product
+import uuid
 
 # Flask app should start in global layout
 app = Flask(__name__)
@@ -34,8 +38,33 @@ def webhook():
     r.headers['Content-Type'] = 'application/json'
     return r
 
-
+activeUser = None
 def processRequest(req):
+    if "global-user" in session:
+        activeUser = session["global-user"]
+    action = req.get("result").get("action")
+    parameters = req.get("result").get("parameters")
+
+
+    if action == "user_identify":
+        activeUser = Customer()
+        activeUser.id = uuid.uuid4()
+        session["global-user"] = activeUser.__dict__
+        return makeResponse("Hello user  " + str(activeUser.id))
+
+    elif action == "add_product":
+        productName = parameters.get("product-name") 
+        productAmount = parameters.get("product-amount")
+
+        product = Product(productName, productAmount)
+        if hasattr(activeUser, "cart") == False:
+            activeUser.cart = []
+        activeUser.cart.append(product)
+
+        session["global-user"] = activeUser
+        return makeResponse(productName + " added!")
+
+
     if req.get("result").get("action") != "yahooWeatherForecast":
         return {}
     baseurl = "https://query.yahooapis.com/v1/public/yql?"
@@ -98,10 +127,41 @@ def makeWebhookResult(data):
         "source": "apiai-weather-webhook-sample"
     }
 
+def makeResponse(msg):
+
+    return {
+        "speech": msg,
+        "displayText": msg,
+        "source": "innoway" 
+    }
+
+
 
 if __name__ == '__main__':
+    # print (str(uuid.uuid4()))
     port = int(os.getenv('PORT', 5000))
 
     print("Starting app on port %d" % port)
 
+    app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
     app.run(debug=False, port=port, host='0.0.0.0')
+
+'''
+    products = []
+    products.append(Product("Cafe", 1))
+    products.append(Product("Sinh to bo", 2))
+
+
+    user = Customer()
+    user.name = "Doan Ngoc Hai"
+    user.cart = products
+
+
+    del products[0]
+    for p in products:
+        print (p.name)
+    
+
+    # print(user.cart[1].number)
+    print (len(products))
+'''
