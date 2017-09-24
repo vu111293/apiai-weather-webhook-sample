@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 
 from __future__ import print_function
 from future.standard_library import install_aliases
@@ -8,15 +9,13 @@ from urllib.parse import urlparse, urlencode
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 
-import json
 import os
-
+import json
+from collections import namedtuple
 from flask import Flask, session
 from flask import request
 from flask import make_response
 
-from user import Customer
-from user import Product
 import uuid
 
 # Flask app should start in global layout
@@ -40,30 +39,53 @@ def webhook():
 
 activeUser = None
 def processRequest(req):
-    if "global-user" in session:
-        activeUser = session["global-user"]
+
+    if not 'demo' in session:
+        foo = Customer()
+        session['demo'] = foo.toJson()
+    else:
+        js = session['demo']
+        foo = Customer.fromJson(js)
+        print(foo)
+
+
     action = req.get("result").get("action")
     parameters = req.get("result").get("parameters")
 
+    if action == "userid":
+        foo = Customer()
+        foo.id = str(uuid.uuid4())
+        foo.name = parameters.get('name')
+        # foo.name = "Guest"
+        session['demo'] = foo.toJson()
+        return makeResponse(("Chào " + foo.name.encode('utf-8') + ". Rất vui được phục vụ bạn!"))
 
-    if action == "user_identify":
-        activeUser = Customer()
-        activeUser.id = uuid.uuid4()
-        session["global-user"] = activeUser.__dict__
-        return makeResponse("Hello user  " + str(activeUser.id))
-
-    elif action == "add_product":
+    elif action == "addproduct":
         productName = parameters.get("product-name") 
         productAmount = parameters.get("product-amount")
 
-        product = Product(productName, productAmount)
-        if hasattr(activeUser, "cart") == False:
-            activeUser.cart = []
-        activeUser.cart.append(product)
+        product = Product()
+        product.name = productName
+        product.amount = productAmount
+        cart = getattr(foo, 'cart', None)
+        if cart is None:
+            cart = []
+        cart.append(product)
+        foo.cart = cart
+        session['demo'] = foo.toJson()
+        return makeResponse(productName.encode('utf-8') + " được thêm vào giỏ hàng")
 
-        session["global-user"] = activeUser
-        return makeResponse(productName + " added!")
-
+    elif action == 'viewcart':
+        cart = getattr(foo, 'cart', None)
+        if cart is None:
+            print("Cart is empty")
+            return makeResponse("Giỏ hàng rỗng!")
+        else:
+            dumps = "Giỏ hàng hiện tại có: "
+            for item in cart:
+                dumps += item.name.encode('utf-8') + ", "
+                print("Product: " + item.name.encode('utf-8') + ": x" + str(item.amount).encode('utf-8'))
+            return makeResponse(dumps)
 
     if req.get("result").get("action") != "yahooWeatherForecast":
         return {}
@@ -136,17 +158,75 @@ def makeResponse(msg):
     }
 
 
+def cache(key, obj):
+    session[key] = objectToJs(obj)
 
+def getCache(key):
+    if key in session:
+        js = session[key]
+        return jsToObject(js)
+    return None
+
+def jsToObject(data):
+    return json.loads(data, object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+
+def objectToJs(data):
+    return json.dumps(data, default=lambda o: o.__dict__)
+
+
+class Product(json.JSONEncoder):
+    def default(self, o):
+        return {'__{}__'.format(o.__class__.__name__): o.__dict__}
+
+class Customer(json.JSONEncoder):
+    def default(self, o):
+        return {'__{}__'.format(o.__class__.__name__): o.__dict__}
+
+
+    def toJson(self):
+        return json.dumps(self, indent=4, cls=Customer)
+
+    @staticmethod
+    def fromJson(js):
+        return json.loads(js, object_hook=decode_object)
+
+def decode_object(o):
+    if '__Customer__' in o:
+        a = Customer()
+        a.__dict__.update(o['__Customer__'])
+        return a
+    elif '__Product__' in o:
+        a = Product()
+        a.__dict__.update(o['__Product__'])
+        return a
+    return o
 if __name__ == '__main__':
     # print (str(uuid.uuid4()))
+
     port = int(os.getenv('PORT', 5000))
-
     print("Starting app on port %d" % port)
-
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
     app.run(debug=False, port=port, host='0.0.0.0')
 
 '''
+    st = Customer()
+    st.name = "MrVu"
+    st.id = "12345"
+    s10 = Product()
+    s10.sr = 100
+    st.score = s10
+    js = st.toJson() # json.dumps(st, indent=4, cls=Customer)
+    print(js)
+    deserialized = Customer.fromJson(js) # json.loads(js, object_hook=decode_object)
+    print(deserialized.name)
+
+    # jsonobject = json.loads( str(js), object_hook= Foo)
+    #jsonobject = Foo.fromJson(js)
+    #print(jsonobject.haha)
+   
+
+
+    pass
     products = []
     products.append(Product("Cafe", 1))
     products.append(Product("Sinh to bo", 2))

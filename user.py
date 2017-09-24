@@ -1,8 +1,20 @@
 class Customer:
-	"This is customer class"
-	def func(self):
-		pass
+  "This is customer class"
+  def __init__(self):
+    self.cart = None
+    pass
 
+  def func(self):
+	  pass
+
+  @classmethod
+  def from_dict(cls, dict):
+    obj = cls()
+    obj.__dict__.update(dict)
+    return obj
+
+  def jsonable(self):
+    return self.__dict__
 
 
 
