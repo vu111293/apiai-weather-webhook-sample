@@ -55,10 +55,10 @@ def processRequest(req):
     if action == "userid":
         foo = Customer()
         foo.id = str(uuid.uuid4())
-        foo.name = parameters.get('name')
-        # foo.name = "Guest"
+        # foo.name = parameters.get('name')
+        foo.name = "Guest"
         session['demo'] = foo.toJson()
-        return makeResponse(("Chào " + foo.name.encode('utf-8') + ". Rất vui được phục vụ bạn!"))
+        return makeResponse(("Chào bạn. Rất vui được phục vụ bạn!"))
 
     elif action == "addproduct":
         productName = parameters.get("product-name") 
