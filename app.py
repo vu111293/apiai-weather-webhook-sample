@@ -100,6 +100,13 @@ def processRequest(req):
                 print("Product: " + item.name.encode('utf-8') + ": x" + str(item.amount).encode('utf-8'))
             return makeResponse(dumps)
 
+    elif action == 'promotion':
+        return makeResponse("Hiện tại chúng tôi đang có chương trình khuyến mãi giảm giá 10% cho bất kì đơn hàng nào trong ngày 2/9")
+
+    elif action == 'viewhistory':
+        return makeResponse("Hiện tại chức năng này đang phát triển. Xin lỗi vì làm phiền")
+
+
     if req.get("result").get("action") != "yahooWeatherForecast":
         return {}
     baseurl = "https://query.yahooapis.com/v1/public/yql?"
