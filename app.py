@@ -61,8 +61,8 @@ def processRequest(req):
         return makeResponse(("Chào bạn. Rất vui được phục vụ bạn!"))
 
     elif action == "addproduct":
-        productName = parameters.get("product-name") 
-        productAmount = parameters.get("product-amount")
+        productName = parameters.get("drink") 
+        productAmount = parameters.get("number")
 
         product = Product()
         product.name = productName
