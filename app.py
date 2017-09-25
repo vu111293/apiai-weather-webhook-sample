@@ -64,16 +64,28 @@ def processRequest(req):
         productName = parameters.get("drink") 
         productAmount = parameters.get("number")
 
+        amount = productAmount
         product = Product()
         product.name = productName
         product.amount = productAmount
         cart = getattr(foo, 'cart', None)
         if cart is None:
             cart = []
-        cart.append(product)
+            cart.append(product)
+        else:
+            found = False
+            for item in cart:
+                if item.name == productName:
+                    item.amount += productAmount
+                    amount = item.amount
+                    found = True
+            if found == False:
+                cart.append(product)
+
         foo.cart = cart
         session['demo'] = foo.toJson()
-        return makeResponse(productName.encode('utf-8') + " được thêm vào giỏ hàng")
+        return makeResponse("Bạn đã đặt " + str(amount).encode('utf-8') + " ly " 
+            + productName.encode('utf-8') + ". Bạn muốn mua gì thêm không?")
 
     elif action == 'viewcart':
         cart = getattr(foo, 'cart', None)
@@ -81,9 +93,10 @@ def processRequest(req):
             print("Cart is empty")
             return makeResponse("Giỏ hàng rỗng!")
         else:
-            dumps = "Giỏ hàng hiện tại có: "
+            dumps = "Giỏ hàng hiện tại có: \n"
             for item in cart:
-                dumps += item.name.encode('utf-8') + ", "
+                dumps += item.name.encode('utf-8') + " x" + str(item.amount).encode('utf-8')
+                dumps += "\n"
                 print("Product: " + item.name.encode('utf-8') + ": x" + str(item.amount).encode('utf-8'))
             return makeResponse(dumps)
 
